@@ -8,6 +8,7 @@ import client_settings
 import json
 from time import time, sleep
 
+
 def print_types(*args):
     for arg in args:
         print(type(arg))
@@ -26,8 +27,6 @@ def position_scaler(x, y):
     return new_x, new_y
 
 
-
-
 def get_new_player_position():
     rand_x, rand_y = random.random(), random.random()
     x, y = position_scaler(rand_x, rand_y)
@@ -43,6 +42,7 @@ def new_player():
     }
     return jsn
 
+
 def threaded_timer(timer, positions):
     while True:
         if time() - timer > 5 and positions:
@@ -50,6 +50,7 @@ def threaded_timer(timer, positions):
             print(positions)
         else:
             sleep(5)
+
 
 def threaded_client(client_connection, client_address, player_positions):
     new_player_data = new_player()
@@ -71,7 +72,7 @@ def threaded_client(client_connection, client_address, player_positions):
 
             #   print("Received: ", data.decode())
             #   print("Sending: ", reply)
-            #client_connection.sendall(reply.encode())
+            # client_connection.sendall(reply.encode())
         except Exception as e:
             print(f"Unknown error: {e}")
             break
@@ -81,6 +82,7 @@ def threaded_client(client_connection, client_address, player_positions):
 
 def update_player_position(dic, player_name, pos):
     dic[str(player_name)] = pos
+
 
 def remove_player_position(dic, player_name):
     dic.pop(str(player_name))
@@ -94,7 +96,7 @@ def main():
     except socket.error as e:
         print(str(e))
 
-    soc.listen(MAX_CLIENTS)
+    soc.listen(MAX_BACKLOG_CONNECTIONS)
     print("Waiting for a connection, server started")
 
     player_positions = {}
@@ -103,8 +105,6 @@ def main():
     _thread.start_new_thread(threaded_timer, (timer, player_positions))
 
     while True:
-
-
 
         try:
             connection, cli_address = soc.accept()
