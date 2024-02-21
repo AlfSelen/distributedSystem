@@ -2,34 +2,7 @@ import pygame
 from network import Network
 from client_settings import *
 from utilities import *
-
-
-class Player:
-    def __init__(self, start_position, width, height, color=get_new_player_color()):
-        self.x, self.y = start_position
-        self.width = width
-        self.height = height
-        self.color = color
-        self.rect = (self.x, self.y, width, height)
-        self.velocity = 3
-
-    def draw(self, window):
-        pygame.draw.rect(window, self.color, self.rect)
-
-    def move(self):
-        keys = pygame.key.get_pressed()
-        if keys[pygame.K_LEFT]:
-            self.x -= self.velocity
-        if keys[pygame.K_RIGHT]:
-            self.x += self.velocity
-        if keys[pygame.K_UP]:
-            self.y -= self.velocity
-        if keys[pygame.K_DOWN]:
-            self.y += self.velocity
-        self.update()
-
-    def update(self):
-        self.rect = (self.x, self.y, self.width, self.height)
+from player import Player
 
 
 def redrawWindow(window, players, clock, font):
@@ -54,7 +27,7 @@ def main():
     connection_data = (n.getConnectionData())
     new_player_data = decode_new_player_data(connection_data)
 
-    p = Player(new_player_data["pos"], PLAYER_WIDTH, PLAYER_HEIGHT, (0,255,0))
+    p = Player(new_player_data["pos"], PLAYER_WIDTH, PLAYER_HEIGHT, (0, 255, 0))
     clock = pygame.time.Clock()
 
     font = pygame.font.SysFont("Arial", 18, bold=True)

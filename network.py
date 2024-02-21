@@ -1,4 +1,5 @@
 import socket
+import pickle
 from client_settings import *
 import server_settings
 
