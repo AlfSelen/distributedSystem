@@ -27,12 +27,26 @@ def update_players(player_data_from_server, player_one):
     return player_data_from_server
 
 
+def show_game_modes(game_list):
+    print("The games you can select are:")
+    for i, game in enumerate(game_list):
+        print(f"{i}:{game}")
+
+
 def main():
     run = True
     pygame.font.init()
     n = Network()
+    # n.send(game_selection)
     connection_data = (n.getConnectionData())
-    new_player_data = connection_data
+    show_game_modes(connection_data)
+    game_selection = input("What you wanna play?")
+    new_player_data = n.sendTextReceivePickle(game_selection)
+    if new_player_data == "NO":
+        print("Your selection were not implemented")
+        return
+    print(new_player_data)
+    # new_player_data = connection_data
 
     p = new_player_data
     clock = pygame.time.Clock()

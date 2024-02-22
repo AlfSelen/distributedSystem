@@ -22,6 +22,10 @@ class Network:
     def getConnectionData(self):
         return self.new_connection_data
 
+    def initialConnect(self):
+        self.client.connect(self.server_addr)
+        return pickle.loads(self.client.recv(2048))
+
     def connect(self):
         try:
             self.client.connect(self.server_addr)
@@ -31,8 +35,15 @@ class Network:
 
     def send(self, data):
         try:
-            self.client.send(data.encode())
+            self.client.sendall(data.encode())
             return self.client.recv(2048).decode()
+        except socket.error as e:
+            print(e)
+
+    def sendTextReceivePickle(self, data):
+        try:
+            self.client.sendall(data.encode())
+            return pickle.loads(self.client.recv(2048))
         except socket.error as e:
             print(e)
 

@@ -43,10 +43,23 @@ def threaded_timer(timer, player_data: dict):
             sleep(5)
 
 
+def game_options():
+    return ["Box", "Ping"]
+
+
 def threaded_client(client_connection, client_address, player_positions):
     new_player_data = create_new_player()
-
-    client_connection.send(pickle.dumps(new_player_data))
+    client_connection.send(pickle.dumps(game_options()))
+    game_selection = client_connection.recv(2048).decode()
+    print(f"{client_address} wanna play {game_selection}")
+    if game_selection == "0" or game_selection == game_options()[0]:
+        client_connection.send(pickle.dumps(new_player_data))
+    else:
+        deny = "NO"
+        client_connection.send(pickle.dumps(deny))
+        client_connection.close()
+        print(f"Client {client_address} disconnected by server")
+        return
     # update_player_position(player_positions, client_address, new_player_data["pos"])
     while True:
         try:
