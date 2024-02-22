@@ -150,6 +150,7 @@ def main():
         except KeyboardInterrupt:
             print("KeyboardInterrupt: Stopping server")
             soc.close()
+            break
         except Exception as e:
             print(f"Unexpected error {e}")
             soc.close()
