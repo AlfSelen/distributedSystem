@@ -12,6 +12,13 @@ class Network:
         self.server_addr = (self.server, self.port)
         self.new_connection_data = self.connect()
 
+    def getPlayers(self, player):
+        try:
+            self.client.send(pickle.dumps(player))
+            return pickle.loads(self.client.recv(2048))
+        except socket.error as e:
+            print(e)
+
     def getConnectionData(self):
         return self.new_connection_data
 

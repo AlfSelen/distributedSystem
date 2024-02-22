@@ -7,6 +7,8 @@ from utilities import *
 import client_settings
 import json
 from time import time, sleep
+import pickle
+from player import Player
 
 
 def print_types(*args):
@@ -47,7 +49,9 @@ def threaded_timer(timer, positions):
     while True:
         if time() - timer > 5 and positions:
             timer = time()
-            print(positions)
+            for player_name, player_obj in positions.items():
+                print(player_name, ":", (player_obj.x, player_obj.y), end="\t")
+            print()
         else:
             sleep(5)
 
@@ -56,18 +60,19 @@ def threaded_client(client_connection, client_address, player_positions):
     new_player_data = new_player()
 
     client_connection.send(json.dumps(new_player_data).encode())
-    update_player_position(player_positions, client_address, new_player_data["pos"])
+    # update_player_position(player_positions, client_address, new_player_data["pos"])
     while True:
         try:
             data = client_connection.recv(2048)
-            reply = data.decode()
-            update_player_position(player_positions, client_address, tuple(reply.split()))
             if not data:
                 print(f"Client {client_address} disconnected")
                 break
             else:
+                reply = pickle.loads(data)
+                update_player_position(player_positions, client_address, reply)
                 player_pos = player_positions.pop(str(client_address))
-                client_connection.sendall(json.dumps(player_positions).encode())
+                # client_connection.sendall(json.dumps(player_positions).encode())
+                client_connection.sendall(pickle.dumps(player_positions))
                 player_positions[str(client_address)] = player_pos
 
             #   print("Received: ", data.decode())

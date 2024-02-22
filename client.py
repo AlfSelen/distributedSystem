@@ -7,8 +7,11 @@ from player import Player
 
 def redrawWindow(window, players, clock, font):
     window.fill((255, 255, 255))
-    for player in players.values():
-        player.draw(window)
+    for player in players.__reversed__():
+        if hasattr(players[player], "draw"):
+            players[player].draw(window)
+        else:
+            print(player)
     fps_counter(window, clock, font)
     pygame.display.update()
 
@@ -20,14 +23,13 @@ def fps_counter(window, clock, font):
 
 
 def main():
-    # Use a breakpoint in the code line below to debug your script. Ctrl+F8 to breakpoint
     run = True
     pygame.font.init()
     n = Network()
     connection_data = (n.getConnectionData())
     new_player_data = decode_new_player_data(connection_data)
 
-    p = Player(new_player_data["pos"], PLAYER_WIDTH, PLAYER_HEIGHT, (0, 255, 0))
+    p = Player(new_player_data["pos"], PLAYER_WIDTH, PLAYER_HEIGHT, get_new_player_color())
     clock = pygame.time.Clock()
 
     font = pygame.font.SysFont("Arial", 18, bold=True)
@@ -38,11 +40,9 @@ def main():
 
     while run:
         clock.tick(60)
-
-        other_players = decode_new_player_data(n.send(str(p.x) + " " + str(p.y)))
-        for player_name, value in other_players.items():
-            (x, y) = map(int, value)
-            players[str(player_name)] = Player((x, y), PLAYER_WIDTH, PLAYER_HEIGHT)
+        other_players = n.getPlayers(p)
+        for player_name, player in other_players.items():
+            players[str(player_name)] = player
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
