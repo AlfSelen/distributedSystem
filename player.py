@@ -26,6 +26,7 @@ class Player:
             self.y -= self.velocity
         if keys[pygame.K_DOWN]:
             self.y += self.velocity
+        self.x += 1
         self.update()
 
     def update(self):

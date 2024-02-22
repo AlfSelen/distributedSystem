@@ -7,11 +7,11 @@ from player import Player
 
 def redrawWindow(window, players, clock, font):
     window.fill((255, 255, 255))
-    for player in players.__reversed__():
-        if hasattr(players[player], "draw"):
-            players[player].draw(window)
+    for key in players.__reversed__():
+        if hasattr(players[key], "draw"):
+            players[key].draw(window)
         else:
-            print(player)
+            print(key)
     fps_counter(window, clock, font)
     pygame.display.update()
 
@@ -22,14 +22,19 @@ def fps_counter(window, clock, font):
     window.blit(fps_t, (5, 5))
 
 
+def update_players(player_data_from_server, player_one):
+    player_data_from_server["p1"] = player_one
+    return player_data_from_server
+
+
 def main():
     run = True
     pygame.font.init()
     n = Network()
     connection_data = (n.getConnectionData())
-    new_player_data = decode_new_player_data(connection_data)
+    new_player_data = connection_data
 
-    p = Player(new_player_data["pos"], PLAYER_WIDTH, PLAYER_HEIGHT, get_new_player_color())
+    p = new_player_data
     clock = pygame.time.Clock()
 
     font = pygame.font.SysFont("Arial", 18, bold=True)
@@ -41,12 +46,12 @@ def main():
     while run:
         clock.tick(60)
         other_players = n.getPlayers(p)
-        for player_name, player in other_players.items():
-            players[str(player_name)] = player
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 run = False
+        for player_name, player in other_players.items():
+            players[player_name] = player
         p.move()
         redrawWindow(win, players, clock, font)
 

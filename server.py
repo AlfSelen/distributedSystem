@@ -16,25 +16,6 @@ def print_types(*args):
         print(type(arg))
 
 
-def position_scaler(x, y):
-    minimum_x = int(client_settings.PLAYER_WIDTH / 2)
-    minimum_y = int(client_settings.PLAYER_HEIGHT / 2)
-    maximum_x = client_settings.WIDTH - minimum_x - client_settings.PLAYER_WIDTH
-    maximum_y = client_settings.HEIGHT - minimum_y - client_settings.PLAYER_HEIGHT
-    # print_types(minimum_x, maximum_x, x)
-
-    new_x = int((x * (maximum_x - minimum_x)) + minimum_x)
-    new_y = int((y * (maximum_y - minimum_y)) + minimum_y)
-
-    return new_x, new_y
-
-
-def get_new_player_position():
-    rand_x, rand_y = random.random(), random.random()
-    x, y = position_scaler(rand_x, rand_y)
-    return x, y
-
-
 def new_player():
     pos = get_new_player_position()
     color = get_new_player_color()
@@ -45,11 +26,17 @@ def new_player():
     return jsn
 
 
-def threaded_timer(timer, positions):
+def create_new_player():
+    new_player = Player(get_new_player_position(client_settings.PLAYER_WIDTH, client_settings.PLAYER_HEIGHT, client_settings.WIDTH, client_settings.HEIGHT), client_settings.PLAYER_WIDTH, client_settings.PLAYER_HEIGHT, get_new_player_color())
+    return new_player
+
+
+def threaded_timer(timer, player_data: dict):
     while True:
-        if time() - timer > 5 and positions:
+        if time() - timer > 5 and player_data:
             timer = time()
-            for player_name, player_obj in positions.items():
+            copied_player_data = player_data.copy()
+            for player_name, player_obj in copied_player_data.items():
                 print(player_name, ":", (player_obj.x, player_obj.y), end="\t")
             print()
         else:
@@ -57,9 +44,9 @@ def threaded_timer(timer, positions):
 
 
 def threaded_client(client_connection, client_address, player_positions):
-    new_player_data = new_player()
+    new_player_data = create_new_player()
 
-    client_connection.send(json.dumps(new_player_data).encode())
+    client_connection.send(pickle.dumps(new_player_data))
     # update_player_position(player_positions, client_address, new_player_data["pos"])
     while True:
         try:
@@ -71,13 +58,9 @@ def threaded_client(client_connection, client_address, player_positions):
                 reply = pickle.loads(data)
                 update_player_position(player_positions, client_address, reply)
                 player_pos = player_positions.pop(str(client_address))
-                # client_connection.sendall(json.dumps(player_positions).encode())
                 client_connection.sendall(pickle.dumps(player_positions))
                 player_positions[str(client_address)] = player_pos
 
-            #   print("Received: ", data.decode())
-            #   print("Sending: ", reply)
-            # client_connection.sendall(reply.encode())
         except Exception as e:
             print(f"Unknown error: {e}")
             break

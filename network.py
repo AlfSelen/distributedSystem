@@ -25,7 +25,7 @@ class Network:
     def connect(self):
         try:
             self.client.connect(self.server_addr)
-            return self.client.recv(2048).decode()
+            return pickle.loads(self.client.recv(2048))
         except Exception as e:
             print(e)
 
