@@ -1,5 +1,6 @@
 import json
 import random
+import pygame
 
 
 def pos_encode(pos):
@@ -44,3 +45,54 @@ def position_scaler(x, y, player_width, player_height, map_width, map_height):
     new_y = int((y * (maximum_y - minimum_y)) + minimum_y)
 
     return new_x, new_y
+
+
+def fps_counter(window, clock, font):
+    fps = str(int(clock.get_fps()))
+    fps_t = font.render(fps, 1, pygame.Color("RED"))
+    window.blit(fps_t, (5, 5))
+
+
+def gen_random_name():
+    names = ["Dennisrex",
+             "IHasLegs",
+             "Dennis Charming Legs",
+             "Dennisasaurus Rex",
+             "Dennis Kind Arm Pits",
+             "Dennis Australian",
+             "Uber Charming Donkey",
+             "Disguised Donkey",
+             "CharmingLegsOMG",
+             "KindLegsLOL",
+             "ViolentLegsOMG",
+             "CharmingArm PitsLOL",
+             "KindArm PitsOMG",
+             "ViolentArm PitsLMAO",
+             "Iamcharming",
+             "Iamkind",
+             "Iamviolent",
+             "IamDennis",
+             "DonkeyMilk",
+             "Dennis Violent Donkey",
+             "MindOfDennis",
+             "Gamerdonkey",
+             "The Charming Gamer",
+             "The Kind Gamer",
+             "The Violent Gamer",
+             "DrCharming",
+             "DennisLegspopper",
+             "BigCharmingDonkey",
+             "ItIsYeDonkey",
+             "D3nn1s",
+             "Donkey Boy",
+             "Donkey Girl",
+             "Donkey Person",
+             "Captain Charming",
+             "IHasArm Pits",
+             "Total Donkey",
+             "The Charming Australian Dude",
+             "The Gaming Donkey",
+             "Gaming With Dennis",
+             "Mr Game Donkey",
+             "Ms Game Donkey"]
+    return random.choice(names)

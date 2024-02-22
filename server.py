@@ -9,6 +9,8 @@ import json
 from time import time, sleep
 import pickle
 from player import Player
+from board import Board
+from check import *
 
 
 def print_types(*args):
@@ -31,6 +33,11 @@ def create_new_player():
     return new_player
 
 
+def create_new_board():
+    new_board = gen_board(10)
+    return Board(new_board, client_settings.WIDTH, gen_random_name())
+
+
 def threaded_timer(timer, player_data: dict):
     while True:
         if time() - timer > 5 and player_data:
@@ -47,42 +54,70 @@ def game_options():
     return ["Box", "Ping"]
 
 
-def threaded_client(client_connection, client_address, player_positions):
-    new_player_data = create_new_player()
+def threaded_client(client_connection, client_address, player_positions, player_boards):
     client_connection.send(pickle.dumps(game_options()))
     game_selection = client_connection.recv(2048).decode()
     print(f"{client_address} wanna play {game_selection}")
     if game_selection == "0" or game_selection == game_options()[0]:
+        new_player_data = create_new_player()
         client_connection.send(pickle.dumps(new_player_data))
-    else:
-        deny = "NO"
-        client_connection.send(pickle.dumps(deny))
-        client_connection.close()
-        print(f"Client {client_address} disconnected by server")
-        return
-    # update_player_position(player_positions, client_address, new_player_data["pos"])
-    while True:
-        try:
-            data = client_connection.recv(2048)
-            if not data:
-                print(f"Client {client_address} disconnected")
+        while True:
+            try:
+                data = client_connection.recv(2048)
+                if not data:
+                    print(f"Client {client_address} disconnected")
+                    break
+                else:
+                    reply = pickle.loads(data)
+                    update_player_position(player_positions, client_address, reply)
+                    player_pos = player_positions.pop(str(client_address))
+                    client_connection.sendall(pickle.dumps(player_positions))
+                    player_positions[str(client_address)] = player_pos
+
+            except Exception as e:
+                print(f"Unknown error: {e}")
                 break
-            else:
-                reply = pickle.loads(data)
-                update_player_position(player_positions, client_address, reply)
-                player_pos = player_positions.pop(str(client_address))
-                client_connection.sendall(pickle.dumps(player_positions))
-                player_positions[str(client_address)] = player_pos
-
-        except Exception as e:
-            print(f"Unknown error: {e}")
-            break
-    remove_player_position(player_positions, client_address)
-    client_connection.close()
+        remove_player_position(player_positions, client_address)
+        client_connection.close()
 
 
-def update_player_position(dic, player_name, pos):
-    dic[str(player_name)] = pos
+    elif game_selection == "1" or game_selection == game_options()[1]:
+        # response = "NO"
+        # client_connection.send(pickle.dumps(response))
+        # client_connection.close()
+        # print(f"Client {client_address} disconnected by server")
+        # return
+        new_board_data = create_new_board()
+        client_connection.send(pickle.dumps(new_board_data))
+        # client_connection.send(pickle.dumps("Just initializing"))
+        while True:
+            try:
+                data = client_connection.recv(2048)
+                if not data:
+                    print(f"Client {client_address} disconnected")
+                    break
+                else:
+                    reply = pickle.loads(data)
+                    update_player_board(player_boards, client_address, reply)
+                    player_board = player_boards.pop(str(client_address))
+                    client_connection.sendall(pickle.dumps(player_boards))
+                    player_boards[str(client_address)] = player_board
+
+            except Exception as e:
+                print(f"Unknown error: {e}")
+                break
+        remove_player_position(player_boards, client_address)
+        client_connection.close()
+
+    # update_player_position(player_positions, client_address, new_player_data["pos"])
+
+
+def update_player_position(dic, player_name, box_obj):
+    dic[str(player_name)] = box_obj
+
+
+def update_player_board(dic, player_name, board_obj):
+    dic[str(player_name)] = board_obj
 
 
 def remove_player_position(dic, player_name):
@@ -101,6 +136,7 @@ def main():
     print("Waiting for a connection, server started")
 
     player_positions = {}
+    player_boards = {}
 
     timer = time()
     _thread.start_new_thread(threaded_timer, (timer, player_positions))
@@ -110,7 +146,7 @@ def main():
         try:
             connection, cli_address = soc.accept()
             print("Connected to:", cli_address)
-            _thread.start_new_thread(threaded_client, (connection, cli_address, player_positions))
+            _thread.start_new_thread(threaded_client, (connection, cli_address, player_positions, player_boards))
         except KeyboardInterrupt:
             print("KeyboardInterrupt: Stopping server")
             soc.close()
