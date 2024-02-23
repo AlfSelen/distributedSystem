@@ -1,5 +1,5 @@
 import time
-
+import sys
 import pygame
 from network import Network
 from client_settings import *
@@ -74,6 +74,7 @@ def threaded_receiver(client_connection: Network, data_dict) -> None:
 
 
 def main():
+    args = sys.argv[1:]
     run = True
     pygame.font.init()
     n = Network()
@@ -81,7 +82,9 @@ def main():
     connection_data = (n.getConnectionData())
     show_game_modes(connection_data)
     #
-    if DEFAULT_GAME:
+    if args[0]:
+        game_selection = args[0]
+    elif DEFAULT_GAME:
         game_selection = DEFAULT_GAME
     else:
         game_selection = input("What you wanna play?")
