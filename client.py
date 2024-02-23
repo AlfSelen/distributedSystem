@@ -82,7 +82,7 @@ def main():
     connection_data = (n.getConnectionData())
     show_game_modes(connection_data)
     #
-    if args[0]:
+    if len(args):
         game_selection = args[0]
     elif DEFAULT_GAME:
         game_selection = DEFAULT_GAME
