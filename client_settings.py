@@ -8,3 +8,7 @@ BORDER_COLOR = (0, 0, 0)
 TITLE_BAR_COLOR = (100, 100, 100)
 PLAYER_NAME_TEXT_COLOR = (0, 0, 0)
 DEFAULT_GAME = "1"
+GAME_SERVER_UPDATES_PER_SECOND = 10
+"""
+Sets updates sent to server per second
+"""

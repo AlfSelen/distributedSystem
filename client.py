@@ -1,3 +1,5 @@
+import time
+
 import pygame
 from network import Network
 from client_settings import *
@@ -5,6 +7,7 @@ from utilities import *
 from player import Player
 import check
 from board import Board
+import _thread
 
 
 def redrawBoxWindow(window, players, clock, font):
@@ -50,6 +53,26 @@ def show_game_modes(game_list):
         print(f"{i}:{game}")
 
 
+def threaded_receiver(client_connection: Network, data_dict) -> None:
+    """
+    Updates data_dict with data from server
+    :param client_connection: n Network
+    :param data_dict: dict of data. e.g boards or players d= {"p1": Board(), "127.0.0.1, 50242: Board()}
+    :return:
+    """
+    while True:
+        try:
+            other_players = client_connection.getPlayers(data_dict["p1"])
+            for player_name, other_player_board in other_players.items():
+                data_dict[player_name] = other_player_board
+            time.sleep(1 / GAME_SERVER_UPDATES_PER_SECOND)
+        except Exception as e:
+            print(f"Unknown error: {e}")
+            break
+
+    client_connection.close()
+
+
 def main():
     run = True
     pygame.font.init()
@@ -80,15 +103,17 @@ def main():
         win = pygame.display.set_mode((WIDTH, HEIGHT))
         p = server_response_data
         players = {"p1": p}
+
+        _thread.start_new_thread(threaded_receiver, (n, players))
         while run:
             clock.tick(60)
-            other_players = n.getPlayers(p)
+            # other_players = n.getPlayers(p)
 
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     run = False
-            for player_name, player in other_players.items():
-                players[player_name] = player
+            # for player_name, player in other_players.items():
+            #    players[player_name] = player
             p.move()
             redrawBoxWindow(win, players, clock, font)
 
@@ -98,27 +123,32 @@ def main():
         win = pygame.display.set_mode((WIDTH, HEIGHT + TITLE_BAR))
         board = server_response_data
         boards = {"p1": board}
+
+        _thread.start_new_thread(threaded_receiver, (n, boards))
         while run:
-            clock.tick(60)
-            if counter % 2 == 0:
-                other_players = n.getPlayers(board)
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    run = False
-            for player_name, other_player_board in other_players.items():
-                boards[player_name] = other_player_board
+            try:
+                clock.tick(60)
+                for event in pygame.event.get():
+                    if event.type == pygame.QUIT:
+                        run = False
 
-            if counter % 60 == 0:
-                check.corrupt_board(board.board)
+                if counter % 60 == 0:
+                    check.corrupt_board(board.board)
 
-            players = len(boards)
-            if players > 1 and players != last_players:
-                print(f"Changing resolution, there are now {players} players and there were {last_players}")
-                pygame.display.set_mode((players * WIDTH + BORDER_WIDTH * (players - 1), HEIGHT + TITLE_BAR))
-                last_players = players
+                players = len(boards)
+                if players > 1 and players != last_players:
+                    print(f"Changing resolution, there are now {players} players and there were {last_players}")
+                    pygame.display.set_mode((players * WIDTH + BORDER_WIDTH * (players - 1), HEIGHT + TITLE_BAR))
+                    last_players = players
 
-            counter += 1
-            redrawBoardWindow(win, boards, clock, font)
+                counter += 1
+                redrawBoardWindow(win, boards, clock, font)
+            except KeyboardInterrupt:
+                print("Keyboard Interrupt: Quitting:")
+                break
+            except Exception as e:
+                print(f"Unknown error: {e}:")
+                break
 
         pygame.quit()
 
