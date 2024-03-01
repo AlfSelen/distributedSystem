@@ -109,6 +109,9 @@ def threaded_client(client_connection, client_address, player_positions, player_
         remove_player_position(player_boards, client_address)
         client_connection.close()
 
+    else:
+        client_connection.close()
+
     # update_player_position(player_positions, client_address, new_player_data["pos"])
 
 
