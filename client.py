@@ -1,6 +1,7 @@
 import time
 import sys
-import pygame
+import os
+
 from network import Network
 from client_settings import *
 from utilities import *
@@ -8,6 +9,7 @@ from player import Player
 import check
 from board import Board
 import _thread
+import argparse
 
 
 def redrawBoxWindow(window, players, clock, font):
@@ -70,20 +72,40 @@ def threaded_receiver(client_connection: Network, data_dict) -> None:
             print(f"Unknown error: {e}")
             break
 
-    client_connection.close()
+    client_connection.client.close()
+
+
+def arg_int_or_string(arg):
+    selections = set("0", "1")
+    try:
+        return int(arg)
+    except ValueError:
+        pass
+    if arg in selections:
+        return arg
+
+
+def argparse_setup():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--game", help="Given number or name of game to skip initial input, e.g. 0, 1, Box or Ping")
+    parser.add_argument("--server", help="IP of server e.g. 127.0.0.1", type=str)
+    parser.add_argument("--port", help="IP of server e.g. 5555", type=int)
+    return parser.parse_args()
 
 
 def main():
-    args = sys.argv[1:]
+    args = argparse_setup()
     run = True
     pygame.font.init()
-    n = Network()
-    # n.send(game_selection)
+    n = Network(args.server, args.port)
     connection_data = (n.getConnectionData())
+    if not connection_data:
+        print("No answer from server, exiting")
+        return
     show_game_modes(connection_data)
     #
-    if len(args):
-        game_selection = args[0]
+    if args.game:
+        game_selection = args.game
     elif DEFAULT_GAME:
         game_selection = DEFAULT_GAME
     else:
@@ -91,9 +113,7 @@ def main():
     server_response_data = n.sendTextReceivePickle(game_selection)
     if server_response_data == "NO":
         print("Your selection were not implemented")
-        # return
-    print(server_response_data)
-    # server_response_data = connection_data
+    # print(server_response_data)
 
     font = pygame.font.SysFont("Arial", 18, bold=True)
 
@@ -149,8 +169,15 @@ def main():
             except KeyboardInterrupt:
                 print("Keyboard Interrupt: Quitting:")
                 break
+            except ConnectionResetError as e:
+                if e.winerror == 10054:
+                    print(f"Server disconnected")
+                else:
+                    print(f"Unexpected connection reset error {e}")
+                break
             except Exception as e:
-                print(f"Unknown error: {e}:")
+                print(f"Unexpected error {e}")
+
                 break
 
         pygame.quit()
