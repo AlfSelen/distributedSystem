@@ -1,4 +1,3 @@
-import pygame
 from client_settings import *
 from utilities import *
 import check
