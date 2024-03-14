@@ -22,6 +22,18 @@ class Board:
         for row in self.board:
             print(row)
 
+    def countCellColors(self) -> {int, int, int}:
+        color_count = {0: 0, 1: 0, 2: 0}
+        for row in self.board:
+            for cell in row:
+                if Board.mapColor(cell) == (0, 0, 255):
+                    color_count[0] += 1
+                elif Board.mapColor(cell) == (0, 255, 0):
+                    color_count[1] += 1
+                elif Board.mapColor(cell) == (255, 0, 0):
+                    color_count[2] += 1
+        return color_count
+
     @staticmethod
     def mapColor(value: int) -> (int, int, int):
         color = (0, 0, 0)

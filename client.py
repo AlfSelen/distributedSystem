@@ -21,12 +21,19 @@ def redrawBoxWindow(window, players, clock, font):
     pygame.display.update()
 
 
+def drawPoints(window, players, font):
+    for i, player in enumerate(players):
+        colors = player.board.countCellColors()
+        window.blit(font.render(f"Player {i + 1}:", 1, (0, 0, 0)), (WIDTH * i, 0))
+
+
+        
+
 def redrawBoardWindow(window, boards, clock, font):
     window.fill((255, 255, 255))
 
     for i, board_index in enumerate(boards):
         boards[board_index].draw(window, offset_x=i * WIDTH + BORDER_WIDTH * i, offset_y=TITLE_BAR)
-        # (players * (WIDTH + (BORDER_WIDTH - 1)), HEIGHT)
         title_rect = (WIDTH * i + (TITLE_BAR * i), 0, WIDTH + BORDER_WIDTH, TITLE_BAR)
         border_rect = (WIDTH * (i + 1) + BORDER_WIDTH * i, 0, BORDER_WIDTH, HEIGHT + TITLE_BAR)
         pygame.draw.rect(window, TITLE_BAR_COLOR, title_rect)
@@ -37,7 +44,7 @@ def redrawBoardWindow(window, boards, clock, font):
 
         # pygame.draw.
         pygame.draw.rect(window, BORDER_COLOR, border_rect)
-
+    drawPoints(window, boards, font)
     fps_counter(window, clock, font)
     pygame.display.update()
 
@@ -94,6 +101,7 @@ def main():
         # return
     print(server_response_data)
     # server_response_data = connection_data
+
 
     font = pygame.font.SysFont("Arial", 18, bold=True)
 
