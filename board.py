@@ -66,7 +66,6 @@ def main():
     win = pygame.display.set_mode((WIDTH * 2, HEIGHT))
     pygame.display.set_caption(GAME_CAPTION)
 
-    (board.print_board())
     while run:
         clock.tick(60)
 

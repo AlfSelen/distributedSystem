@@ -5,10 +5,10 @@ import server_settings
 
 
 class Network:
-    def __init__(self):
+    def __init__(self, server_ip, port):
         self.client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.server = server_settings.SERVER_IP
-        self.port = server_settings.SERVER_PORT
+        self.server = server_ip if server_ip else "127.0.0.1"
+        self.port = port if port else 5555
         self.server_addr = (self.server, self.port)
         self.new_connection_data = self.connect()
 
@@ -28,10 +28,20 @@ class Network:
 
     def connect(self):
         try:
-            self.client.connect(self.server_addr)
-            return pickle.loads(self.client.recv(2048))
+            connect_response = self.client.connect(self.server_addr)
+            # print(f"{connect_response}:{type(connect_response)}")
+            server_response = self.client.recv(2048)
+            # print(f"{server_response}:{type(server_response)}")
+            return pickle.loads(server_response)
+        except ConnectionResetError as e:
+            if e.winerror == 10054:
+                print(f"Server disconnected")
+            if e.winerror == 10061:
+                print("Could not connect to server, make sure IP and port is correct and that server is running (WinError 10061)")
+            else:
+                print(f"Unexpected connection reset error {e}")
         except Exception as e:
-            print(e)
+            print(f"Unknown network error {e}")
 
     def send(self, data):
         try:

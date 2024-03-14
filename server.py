@@ -11,6 +11,7 @@ import pickle
 from player import Player
 from board import Board
 from check import *
+import argparse
 
 
 def print_types(*args):
@@ -18,14 +19,14 @@ def print_types(*args):
         print(type(arg))
 
 
-def new_player():
-    pos = get_new_player_position()
-    color = get_new_player_color()
-    jsn = {
-        "pos": pos,
-        "color": color
-    }
-    return jsn
+# def new_player():
+#     pos = get_new_player_position()
+#     color = get_new_player_color()
+#     jsn = {
+#         "pos": pos,
+#         "color": color
+#     }
+#     return jsn
 
 
 def create_new_player():
@@ -57,7 +58,7 @@ def game_options():
 def threaded_client(client_connection, client_address, player_positions, player_boards):
     client_connection.send(pickle.dumps(game_options()))
     game_selection = client_connection.recv(2048).decode()
-    print(f"{client_address} wanna play {game_selection}")
+    print(f"{':'.join(list(map(str, client_address)))} wanna play {game_selection}")
     if game_selection == "0" or game_selection == game_options()[0]:
         new_player_data = create_new_player()
         client_connection.send(pickle.dumps(new_player_data))
@@ -73,9 +74,12 @@ def threaded_client(client_connection, client_address, player_positions, player_
                     player_pos = player_positions.pop(str(client_address))
                     client_connection.sendall(pickle.dumps(player_positions))
                     player_positions[str(client_address)] = player_pos
-
+            except ConnectionResetError as e:
+                if e.winerror == 10054:
+                    print(f"Client {':'.join(list(map(str, client_address)))} disconnected")
+                    break
             except Exception as e:
-                print(f"Unknown error: {e}")
+                print(f"Unexpected error {e}")
                 break
         remove_player_position(player_positions, client_address)
         client_connection.close()
@@ -103,10 +107,20 @@ def threaded_client(client_connection, client_address, player_positions, player_
                     client_connection.sendall(pickle.dumps(player_boards))
                     player_boards[str(client_address)] = player_board
 
+            except ConnectionResetError as e:
+                if e.winerror == 10054:
+                    print(f"Connection terminated by client")
+                else:
+                    print(f"Unknown connection reset error {e}")
+                break
             except Exception as e:
                 print(f"Unknown error: {e}")
                 break
         remove_player_position(player_boards, client_address)
+        client_connection.close()
+
+    else:
+        print(f"Invalid game option terminating {':'.join(list(map(str, client_address)))}")
         client_connection.close()
 
     # update_player_position(player_positions, client_address, new_player_data["pos"])
@@ -124,16 +138,27 @@ def remove_player_position(dic, player_name):
     dic.pop(str(player_name))
 
 
+def argparse_setup():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--server", help="IP of server e.g. 127.0.0.1", type=str)
+    parser.add_argument("--port", help="IP of server e.g. 5555", type=int)
+    return parser.parse_args()
+
+
 def main():
+    args = argparse_setup()
     soc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
+    server_ip = args.server if args.server else SERVER_IP
+    server_port = args.port if args.port else SERVER_PORT
+
     try:
-        soc.bind((SERVER_IP, SERVER_PORT))
+        soc.bind((server_ip, server_port))
     except socket.error as e:
         print(str(e))
 
     soc.listen(MAX_BACKLOG_CONNECTIONS)
-    print("Waiting for a connection, server started")
+    print(f"Waiting for a connection, server started on {server_ip}:{server_port}")
 
     player_positions = {}
     player_boards = {}
@@ -145,16 +170,22 @@ def main():
 
         try:
             connection, cli_address = soc.accept()
-            print("Connected to:", cli_address)
+            print("Connected to:", ':'.join(list(map(str, cli_address))))
             _thread.start_new_thread(threaded_client, (connection, cli_address, player_positions, player_boards))
         except KeyboardInterrupt:
             print("KeyboardInterrupt: Stopping server")
             soc.close()
             break
+        except ConnectionResetError as e:
+            if e.winerror == 10054:
+                print(f"Client {':'.join(list(map(str, cli_address)))} disconnected")
+            else:
+                print(f"Unexpected Connection reset error, {e}")
+            break
         except Exception as e:
             print(f"Unexpected error {e}")
-            soc.close()
             break
+    soc.close()
 
 
 if __name__ == '__main__':
