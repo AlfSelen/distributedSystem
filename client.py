@@ -12,7 +12,7 @@ import _thread
 import argparse
 
 
-def redrawBoxWindow(window, players, clock, font):
+def redrawBoxWindow(window, players, clock, font: pygame.font.SysFont):
     window.fill((255, 255, 255))
     for key in players.__reversed__():
         if hasattr(players[key], "draw"):
@@ -23,10 +23,12 @@ def redrawBoxWindow(window, players, clock, font):
     pygame.display.update()
 
 
-def drawPoints(window, players, font):
-    for i, player in enumerate(players):
-        colors = player.board.countCellColors()
-        window.blit(font.render(f"Player {i + 1}:", 1, (0, 0, 0)), (WIDTH * i, 0))
+def drawBoardPoints(window, boards: list[Board], font: pygame.font.SysFont):
+    for i, (_, board) in enumerate(boards.items()):
+        colors = board.countCellColors()
+        rendered_points = font.render(f"Blue: {colors[0]} Green: {colors[1]} Red: {colors[2]}", 1, POINTS_TEXT_COLOR)
+        #window.blit(rendered_points, (0, 0 +TITLE_BAR))
+        window.blit(rendered_points, (0 + WIDTH * i + BORDER_WIDTH * i, 0 + TITLE_BAR))
 
 
         
@@ -46,7 +48,7 @@ def redrawBoardWindow(window, boards, clock, font):
 
         # pygame.draw.
         pygame.draw.rect(window, BORDER_COLOR, border_rect)
-    drawPoints(window, boards, font)
+    drawBoardPoints(window, boards, font)
     fps_counter(window, clock, font)
     pygame.display.update()
 
