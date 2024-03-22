@@ -6,7 +6,18 @@ from board import Board
 from player import Player
 
 
-# from check import
+def message(bit: bytes, text: str) -> bytes:
+    bit_str = bit.decode()
+    if bit_str.startswith("0b"):
+        base = 2
+    elif bit_str.startswith("0x"):
+        base = 16
+    else:
+        raise ValueError(f"Unsupported format. Only binary (0b) and hexadecimal (0x) are supported. {bit_str=}")
+
+    bit_int = int(bit_str, base)
+    control_byte = bit_int.to_bytes(1, byteorder="big")
+    return control_byte + text.encode("utf-8")
 
 
 def load_data(data):
@@ -65,7 +76,7 @@ class Network:
     def initial_send(self, data):
         if isinstance(data, str):
             self.socket.sendall(data.encode())
-        elif isinstance(self, (dict, list, tuple)):
+        elif isinstance(data, (dict, list, tuple)):
             self.socket.sendall(pickle.dumps(data))
 
     def send_and_receive(self, data):
