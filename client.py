@@ -2,9 +2,7 @@ import time
 import sys
 import os
 
-import pygame.font
-
-from network import Network
+from network import ClientNetwork
 from client_settings import *
 from utilities import *
 from player import Player
@@ -12,6 +10,7 @@ import check
 from board import Board
 import _thread
 import argparse
+import pickle
 
 
 def redrawBoxWindow(window, players, clock, font: pygame.font.SysFont):
@@ -139,7 +138,7 @@ def show_game_modes(game_list):
         print(f"{i}:{game}")
 
 
-def threaded_receiver(client_connection: Network, data_dict) -> None:
+def threaded_receiver(client_connection: ClientNetwork, data_dict) -> None:
     """
     Updates data_dict with data from server
     :param client_connection: n Network
@@ -156,7 +155,7 @@ def threaded_receiver(client_connection: Network, data_dict) -> None:
             print(f"Unknown error: {e}")
             break
 
-    client_connection.client.close()
+    client_connection.socket.close()
 
 
 def arg_int_or_string(arg):
@@ -181,22 +180,26 @@ def main():
     args = argparse_setup()
     run = True
     pygame.font.init()
-    n = Network(args.server, args.port)
+    n = ClientNetwork(args.server, args.port)
     connection_data = (n.getConnectionData())
     if not connection_data:
         print("No answer from server, exiting")
         return
-    show_game_modes(connection_data)
-    #
+
     if args.game:
         game_selection = args.game
     elif DEFAULT_GAME:
         game_selection = DEFAULT_GAME
     else:
+        show_game_modes(connection_data)
         game_selection = input("What you wanna play?")
-    server_response_data = n.sendTextReceivePickle(game_selection)
-    if server_response_data == "NO":
-        print("Your selection were not implemented")
+    # server_response_data = n.send_and_receive(game_selection)
+    # server_response_data = pickle.loads(n.socket.recv(2048))
+    n.socket.sendall(game_selection.encode())
+    server_response_data = pickle.loads(n.socket.recv(2048))
+    if not isinstance(server_response_data, (Board, Player)):
+        print("Your selection were not implemented, and were rejected by server")
+        return
     # print(server_response_data)
 
 
@@ -209,10 +212,10 @@ def main():
 
     if game_selection == "0" or game_selection == "Box":
         win = pygame.display.set_mode((WIDTH, HEIGHT))
-        p = server_response_data
-        player_count = {"p1": p}
+        p: Player = server_response_data
+        players = {"p1": p}
 
-        _thread.start_new_thread(threaded_receiver, (n, player_count))
+        _thread.start_new_thread(threaded_receiver, (n, players))
         while run:
             clock.tick(60)
             # other_players = n.getPlayers(p)
@@ -223,13 +226,13 @@ def main():
             # for player_name, player in other_players.items():
             #    players[player_name] = player
             p.move()
-            redrawBoxWindow(win, player_count, clock, font)
+            redrawBoxWindow(win, players, clock, font)
 
         pygame.quit()
     elif game_selection == "1" or game_selection == "Ping":
         # win = pygame.display.set_mode((WIDTH * 2 + BORDER_WIDTH, HEIGHT))
         win = pygame.display.set_mode((WIDTH, HEIGHT + TITLE_BAR))
-        board = server_response_data
+        board: Board = server_response_data
         boards = {"p1": board}
 
         _thread.start_new_thread(threaded_receiver, (n, boards))
