@@ -2,6 +2,8 @@ import time
 import sys
 import os
 
+import pygame.font
+
 from network import Network
 from client_settings import *
 from utilities import *
@@ -27,16 +29,18 @@ def drawBoardPoints(window, boards: list[Board], font: pygame.font.SysFont):
     for i, (_, board) in enumerate(boards.items()):
         colors = board.countCellColors()
         rendered_points = font.render(f"Blue: {colors[0]} Green: {colors[1]} Red: {colors[2]}", 1, POINTS_TEXT_COLOR)
-        #window.blit(rendered_points, (0, 0 +TITLE_BAR))
         window.blit(rendered_points, (0 + WIDTH * i + BORDER_WIDTH * i, 0 + TITLE_BAR))
 
 
-        
+def drawBoardPoint(window, board: Board, font: pygame.font.SysFont, offset: tuple[int, int]):
+    colors = board.countCellColors()
+    rendered_points = font.render(f"Blue: {colors[0]} Green: {colors[1]} Red: {colors[2]}", 1, POINTS_TEXT_COLOR)
+    window.blit(rendered_points, (offset[0], offset[1]+TITLE_BAR))
 
-def redrawBoardWindow(window, boards, clock, font):
+def redrawBoardWindowHorizontally(window, boards, clock, font):
     window.fill((255, 255, 255))
-
-    for i, board_index in enumerate(boards):
+    for i, (board_index, board) in enumerate(list(boards.items())):
+    #for i, board_index in enumerate(boards):
         boards[board_index].draw(window, offset_x=i * WIDTH + BORDER_WIDTH * i, offset_y=TITLE_BAR)
         title_rect = (WIDTH * i + (TITLE_BAR * i), 0, WIDTH + BORDER_WIDTH, TITLE_BAR)
         border_rect = (WIDTH * (i + 1) + BORDER_WIDTH * i, 0, BORDER_WIDTH, HEIGHT + TITLE_BAR)
@@ -48,9 +52,80 @@ def redrawBoardWindow(window, boards, clock, font):
 
         # pygame.draw.
         pygame.draw.rect(window, BORDER_COLOR, border_rect)
+
     drawBoardPoints(window, boards, font)
     fps_counter(window, clock, font)
     pygame.display.update()
+
+def redrawBoardPlayerGridU(window, boards, clock, font):
+    window.fill((255, 255, 255))
+
+    #for i, board_index in enumerate(boards):
+    for i, (board_index, board) in enumerate(list(boards.items())):
+        offset = (((i % 2) * WIDTH), (i % 2) * (HEIGHT+TITLE_BAR))
+        drawSinglePlayer(window, boards[board_index], font, offset)
+
+    #drawBoardPoints(window, boards, font)
+    fps_counter(window, clock, font)
+    pygame.display.update()
+
+
+def redrawBoardPlayerGrid(window, boards, clock, font):
+    window.fill((255, 255, 255))
+
+    num_columns = 2  # Assuming a 2x2 grid
+    # Adjust WIDTH and HEIGHT if necessary to fit the window size
+    for i, (board_index, board) in enumerate(list(boards.items())):
+        # Calculate row and column based on index
+        row = i // num_columns
+        column = i % num_columns
+
+        # Calculate offset based on row and column
+        offset_x = column * (WIDTH + BORDER_WIDTH)
+        offset_y = row * (HEIGHT + TITLE_BAR)
+
+        # Pass the calculated offset to the function
+        drawSinglePlayer(window, board, font, (offset_x, offset_y))
+        drawBoardPoint(window, board, font, (offset_x, offset_y))
+
+    if len(boards) == 3:
+        offset_x = (WIDTH + BORDER_WIDTH)
+        offset_y = (HEIGHT + TITLE_BAR)
+        drawLayout(window, font, (offset_x, offset_y))
+
+    drawBoardPoints(window, boards, font)
+    fps_counter(window, clock, font)
+    pygame.display.update()
+
+
+
+def drawLayout(window, font, offset: tuple[int, int]):
+    title_rect = (offset[0], offset[1], WIDTH + BORDER_WIDTH, TITLE_BAR)
+    border_rect = (offset[0]-BORDER_WIDTH, offset[1], BORDER_WIDTH, HEIGHT + TITLE_BAR)
+    pygame.draw.rect(window, TITLE_BAR_COLOR, title_rect)
+    pygame.draw.rect(window, BORDER_COLOR, border_rect)
+
+    rendered_player_name = font.render("Waiting for player", 1, PLAYER_NAME_TEXT_COLOR)
+    text_width, text_height = font.size("Waiting for player")
+    window.blit(rendered_player_name, (int(WIDTH / 2 + offset[0] - text_width / 2), offset[1]))
+def drawSinglePlayer(window, board, font, offset: tuple[int, int]):
+    board.draw(window, offset_x=offset[0], offset_y=offset[1] + TITLE_BAR)
+    title_rect = (offset[0], offset[1], WIDTH + BORDER_WIDTH, TITLE_BAR)
+    border_rect = (offset[0]-BORDER_WIDTH, offset[1], BORDER_WIDTH, HEIGHT + TITLE_BAR)
+
+    rendered_player_name = font.render(board.name, 1, PLAYER_NAME_TEXT_COLOR)
+    text_width, text_height = font.size(board.name)
+    #window.blit(rendered_player_name, (int(WIDTH / 2 + offset[0] - int(text_width / 2), offset[1])))
+
+    # window.blit(rendered_player_name, (int(WIDTH / 2 + (WIDTH + BORDER_WIDTH) * i) - int(text_width / 2), 0))
+
+    pygame.draw.rect(window, TITLE_BAR_COLOR, title_rect)
+    pygame.draw.rect(window, BORDER_COLOR, border_rect)
+
+    window.blit(rendered_player_name, (int(WIDTH / 2 + offset[0] - text_width / 2), offset[1]))
+
+
+
 
 
 def update_players(player_data_from_server, player_one):
@@ -130,14 +205,14 @@ def main():
     pygame.display.set_caption(GAME_CAPTION)
     clock = pygame.time.Clock()
     counter = 0
-    players, last_players = 1, 1
+    player_count, last_players = 1, 1
 
     if game_selection == "0" or game_selection == "Box":
         win = pygame.display.set_mode((WIDTH, HEIGHT))
         p = server_response_data
-        players = {"p1": p}
+        player_count = {"p1": p}
 
-        _thread.start_new_thread(threaded_receiver, (n, players))
+        _thread.start_new_thread(threaded_receiver, (n, player_count))
         while run:
             clock.tick(60)
             # other_players = n.getPlayers(p)
@@ -148,7 +223,7 @@ def main():
             # for player_name, player in other_players.items():
             #    players[player_name] = player
             p.move()
-            redrawBoxWindow(win, players, clock, font)
+            redrawBoxWindow(win, player_count, clock, font)
 
         pygame.quit()
     elif game_selection == "1" or game_selection == "Ping":
@@ -168,14 +243,20 @@ def main():
                 if counter % 60 == 0:
                     check.corrupt_board(board.board)
 
-                players = len(boards)
-                if players > 1 and players != last_players:
-                    print(f"Changing resolution, there are now {players} players and there were {last_players}")
-                    pygame.display.set_mode((players * WIDTH + BORDER_WIDTH * (players - 1), HEIGHT + TITLE_BAR))
-                    last_players = players
+                player_count = len(boards)
+                if player_count > 1 and player_count != last_players:
+                    print(f"Changing resolution, there are now {player_count} players and there were {last_players}")
+                    last_players = player_count
+                    if player_count == 2:
+                        pygame.display.set_mode(
+                            (player_count * WIDTH + BORDER_WIDTH * (player_count - 1), HEIGHT + TITLE_BAR))
+                    else:
+                        pygame.display.set_mode(
+                            (2 * WIDTH + BORDER_WIDTH, 2 * (HEIGHT + TITLE_BAR)))
 
                 counter += 1
-                redrawBoardWindow(win, boards, clock, font)
+                #redrawBoardWindowHorizontally(win, boards, clock, font)
+                redrawBoardPlayerGrid(win, boards, clock, font)
             except KeyboardInterrupt:
                 print("Keyboard Interrupt: Quitting:")
                 break
