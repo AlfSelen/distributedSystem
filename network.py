@@ -71,7 +71,7 @@ class Network:
         try:
             return self.socket.recv(2048)
         except socket.error as e:
-            print(e)
+            print(f"Network error receive: {e}")
 
     def initial_send(self, data):
         if isinstance(data, str):
@@ -90,7 +90,7 @@ class Network:
                 raise TypeError("Unsupported data type for sending")
             return server_response
         except socket.error as e:
-            print(e)
+            print(f"Network send_and_receive{e}")
         except TypeError as e:
             print(e)
 
@@ -137,7 +137,7 @@ class ClientNetwork(Network):
             self.socket.sendall(pickle.dumps(player))
             return pickle.loads(self.socket.recv(2048))
         except socket.error as e:
-            print(e)
+            print(f"ClientNetwork getPlayers:{e}")
 
     def connect(self):
         try:

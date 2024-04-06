@@ -34,12 +34,13 @@ def drawBoardPoints(window, boards: list[Board], font: pygame.font.SysFont):
 def drawBoardPoint(window, board: Board, font: pygame.font.SysFont, offset: tuple[int, int]):
     colors = board.countCellColors()
     rendered_points = font.render(f"Blue: {colors[0]} Green: {colors[1]} Red: {colors[2]}", 1, POINTS_TEXT_COLOR)
-    window.blit(rendered_points, (offset[0], offset[1]+TITLE_BAR))
+    window.blit(rendered_points, (offset[0], offset[1] + TITLE_BAR))
+
 
 def redrawBoardWindowHorizontally(window, boards, clock, font):
     window.fill((255, 255, 255))
     for i, (board_index, board) in enumerate(list(boards.items())):
-    #for i, board_index in enumerate(boards):
+        # for i, board_index in enumerate(boards):
         boards[board_index].draw(window, offset_x=i * WIDTH + BORDER_WIDTH * i, offset_y=TITLE_BAR)
         title_rect = (WIDTH * i + (TITLE_BAR * i), 0, WIDTH + BORDER_WIDTH, TITLE_BAR)
         border_rect = (WIDTH * (i + 1) + BORDER_WIDTH * i, 0, BORDER_WIDTH, HEIGHT + TITLE_BAR)
@@ -56,15 +57,16 @@ def redrawBoardWindowHorizontally(window, boards, clock, font):
     fps_counter(window, clock, font)
     pygame.display.update()
 
+
 def redrawBoardPlayerGridU(window, boards, clock, font):
     window.fill((255, 255, 255))
 
-    #for i, board_index in enumerate(boards):
+    # for i, board_index in enumerate(boards):
     for i, (board_index, board) in enumerate(list(boards.items())):
-        offset = (((i % 2) * WIDTH), (i % 2) * (HEIGHT+TITLE_BAR))
+        offset = (((i % 2) * WIDTH), (i % 2) * (HEIGHT + TITLE_BAR))
         drawSinglePlayer(window, boards[board_index], font, offset)
 
-    #drawBoardPoints(window, boards, font)
+    # drawBoardPoints(window, boards, font)
     fps_counter(window, clock, font)
     pygame.display.update()
 
@@ -85,36 +87,37 @@ def redrawBoardPlayerGrid(window, boards, clock, font):
 
         # Pass the calculated offset to the function
         drawSinglePlayer(window, board, font, (offset_x, offset_y))
-        drawBoardPoint(window, board, font, (offset_x, offset_y))
+        drawBoardPoint(window, board, font, (offset_x, offset_y - TITLE_BAR + POINT_DRAW_OFFSET))
 
     if len(boards) == 3:
         offset_x = (WIDTH + BORDER_WIDTH)
         offset_y = (HEIGHT + TITLE_BAR)
         drawLayout(window, font, (offset_x, offset_y))
 
-    drawBoardPoints(window, boards, font)
+    # drawBoardPoints(window, boards, font)
     fps_counter(window, clock, font)
     pygame.display.update()
 
 
-
 def drawLayout(window, font, offset: tuple[int, int]):
     title_rect = (offset[0], offset[1], WIDTH + BORDER_WIDTH, TITLE_BAR)
-    border_rect = (offset[0]-BORDER_WIDTH, offset[1], BORDER_WIDTH, HEIGHT + TITLE_BAR)
+    border_rect = (offset[0] - BORDER_WIDTH, offset[1], BORDER_WIDTH, HEIGHT + TITLE_BAR)
     pygame.draw.rect(window, TITLE_BAR_COLOR, title_rect)
     pygame.draw.rect(window, BORDER_COLOR, border_rect)
 
     rendered_player_name = font.render("Waiting for player", 1, PLAYER_NAME_TEXT_COLOR)
     text_width, text_height = font.size("Waiting for player")
     window.blit(rendered_player_name, (int(WIDTH / 2 + offset[0] - text_width / 2), offset[1]))
+
+
 def drawSinglePlayer(window, board, font, offset: tuple[int, int]):
     board.draw(window, offset_x=offset[0], offset_y=offset[1] + TITLE_BAR)
     title_rect = (offset[0], offset[1], WIDTH + BORDER_WIDTH, TITLE_BAR)
-    border_rect = (offset[0]-BORDER_WIDTH, offset[1], BORDER_WIDTH, HEIGHT + TITLE_BAR)
+    border_rect = (offset[0] - BORDER_WIDTH, offset[1], BORDER_WIDTH, HEIGHT + TITLE_BAR)
 
     rendered_player_name = font.render(board.name, 1, PLAYER_NAME_TEXT_COLOR)
     text_width, text_height = font.size(board.name)
-    #window.blit(rendered_player_name, (int(WIDTH / 2 + offset[0] - int(text_width / 2), offset[1])))
+    # window.blit(rendered_player_name, (int(WIDTH / 2 + offset[0] - int(text_width / 2), offset[1])))
 
     # window.blit(rendered_player_name, (int(WIDTH / 2 + (WIDTH + BORDER_WIDTH) * i) - int(text_width / 2), 0))
 
@@ -122,9 +125,6 @@ def drawSinglePlayer(window, board, font, offset: tuple[int, int]):
     pygame.draw.rect(window, BORDER_COLOR, border_rect)
 
     window.blit(rendered_player_name, (int(WIDTH / 2 + offset[0] - text_width / 2), offset[1]))
-
-
-
 
 
 def update_players(player_data_from_server, player_one):
@@ -145,21 +145,23 @@ def threaded_receiver(client_connection: ClientNetwork, data_dict) -> None:
     :param data_dict: dict of data. e.g boards or players d= {"p1": Board(), "127.0.0.1, 50242: Board()}
     :return:
     """
-    while True:
-        try:
-            other_players = client_connection.getPlayers(data_dict["p1"])
-            for player_name, other_player_board in other_players.items():
-                data_dict[player_name] = other_player_board
-            time.sleep(1 / GAME_SERVER_UPDATES_PER_SECOND)
-        except Exception as e:
-            print(f"Unknown error: {e}")
-            break
-
-    client_connection.socket.close()
+    try:
+        while True:
+            try:
+                other_players = client_connection.getPlayers(data_dict["p1"])
+                for player_name, other_player_board in other_players.items():
+                    data_dict[player_name] = other_player_board
+                time.sleep(1 / GAME_SERVER_UPDATES_PER_SECOND)
+            except Exception as e:
+                print(f"Unknown error: {e}")
+                break
+    finally:
+        client_connection.socket.shutdown(client_connection.socket.SHUT_RDWR)
+        client_connection.socket.close()
 
 
 def arg_int_or_string(arg):
-    selections = set("0", "1")
+    selections = ["0", "1"]
     try:
         return int(arg)
     except ValueError:
@@ -201,7 +203,6 @@ def main():
         print("Your selection were not implemented, and were rejected by server")
         return
     # print(server_response_data)
-
 
     font = pygame.font.SysFont("Arial", 18, bold=True)
 
@@ -258,20 +259,23 @@ def main():
                             (2 * WIDTH + BORDER_WIDTH, 2 * (HEIGHT + TITLE_BAR)))
 
                 counter += 1
-                #redrawBoardWindowHorizontally(win, boards, clock, font)
+                # redrawBoardWindowHorizontally(win, boards, clock, font)
                 redrawBoardPlayerGrid(win, boards, clock, font)
             except KeyboardInterrupt:
                 print("Keyboard Interrupt: Quitting:")
+                n.socket.close()
                 break
             except ConnectionResetError as e:
                 if e.winerror == 10054:
                     print(f"Server disconnected")
+                    n.socket.close()
                 else:
                     print(f"Unexpected connection reset error {e}")
+                    n.socket.close()
                 break
             except Exception as e:
                 print(f"Unexpected error {e}")
-
+                n.socket.close()
                 break
 
         pygame.quit()
