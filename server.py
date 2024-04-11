@@ -1,6 +1,7 @@
 import socket
 import threading
-import _thread
+import queue
+import concurrent.futures
 import sys
 from server_settings import *
 from utilities import *
@@ -45,14 +46,14 @@ def create_new_board(existing_boards: dict[str, Board]):
     return Board(new_board, client_settings.WIDTH, gen_random_name())
 
 
-def threaded_timer(timer, player_data: dict):
+def threaded_timer(timer, player_data: dict, player_boards: dict):
     while True:
         if time() - timer > 5 and player_data:
             timer = time()
-            copied_player_data = player_data.copy()
-            for player_name, player_obj in copied_player_data.items():
-                print(player_name, ":", (player_obj.x, player_obj.y), end="\t")
-            print()
+            # copied_player_data = player_data.copy()
+            # for player_name, player_obj in copied_player_data.items():
+            #     print(player_name, player_obj, sep="\t")
+            print(f"There are {len(player_boards) + len(player_data)} players connected.")
         else:
             sleep(5)
 
@@ -174,7 +175,8 @@ def accept_new_connections(server_network: ServerNetwork, player_positions: dict
             cli_connection, cli_address = server_network.socket.accept()
             print(f"Connection: {cli_connection}")
             print("Connected to:", ':'.join(list(map(str, cli_address))))
-            _thread.start_new_thread(threaded_client, (cli_connection, cli_address, player_positions, player_boards))
+            # _thread.start_new_thread(threaded_client, (cli_connection, cli_address, player_positions, player_boards))
+            threading.Thread(target=threaded_client, args=[cli_connection, cli_address, player_positions, player_boards], daemon=True).start()
         except KeyboardInterrupt:
             print("KeyboardInterrupt: Stopping server")
             server_network.socket.close()
@@ -190,11 +192,41 @@ def accept_new_connections(server_network: ServerNetwork, player_positions: dict
             break
 
 
+def accept_admin_commands(command_queue: queue.Queue):
+    while True:
+        inp = input("Enter command: ")
+        # Process the command using the command_queue or directly
+        command_queue.put(inp)
+        if inp == "exit":
+            break
+
+
+def admin_command_processor(command_queue: queue.Queue):
+    try:
+        while True:
+            command = input("Enter command: ")
+            # command = command_queue.get()
+            match command:
+                case "exit":
+                    print("shtting down")
+                case "player":
+                    ...
+                case "conn" | "connection":
+                    ...
+                case "help" | "h":
+                    ...  # print_help()
+                case _:
+                    print(f"Unknown command {command}")
+    except UnicodeDecodeError as e:
+        ...
+        # this happens when shutting down within an ide, e.g. "stop process"
+        # print(f"admin_command_processor Decode : {e}")
+    except Exception as e:
+        print(f"admin_command_processor shutting down: {e}")
+
+
 def main():
     args = argparse_setup()
-
-    # soc = server_network.socket
-    # soc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
     server_ip = args.server if args.server else SERVER_IP
     server_port = args.port if args.port else SERVER_PORT
@@ -205,8 +237,14 @@ def main():
     player_boards = {}
 
     timer = time()
-    _thread.start_new_thread(threaded_timer, (timer, player_positions))
-    _thread.start_new_thread(accept_new_connections, (server_network, player_positions, player_boards))
+
+    command_queue = queue.Queue()
+
+    # threading.Thread(target=accept_admin_commands, args=[command_queue], daemon=True).start()
+    threading.Thread(target=admin_command_processor, args=[command_queue], daemon=True).start()
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        # executor.submit(threaded_timer, timer, player_boards, player_positions)
+        accept_new_connections(server_network, player_boards, player_boards)
     # while True:
     #
     #     try:
@@ -228,16 +266,15 @@ def main():
     #         print(f"Unexpected error {e}")
     #         break
 
-    while True:
-        inp = input()
-        if inp == "player":
-            print(player_boards)
-        if inp == "conn" or inp == "connection":
-            print()
-        if inp == "clear":
-            player_boards = {}
-            player_positions = {}
-    server_network.socket.close()
+    # while True:
+    #     inp = input()
+    #     if inp == "player":
+    #         print(player_boards)
+    #     if inp == "conn" or inp == "connection":
+    #         print()
+    #     if inp == "clear":
+    #         player_boards = {}
+    #         player_positions = {}
 
 
 if __name__ == '__main__':
